@@ -55,9 +55,50 @@ export const signUp = async (req,res) => {
  }   
 }
 
-// const login = async (req,res) => {
-//     const existUser = await User.findOne({email})
-//     (!existUser) {
-//         return res.status()
-//     }
-// }
+export const login = async (req,res) => {
+  try {
+    const existUser = await User.findOne({email})
+    if(!existUser) {
+     return res.status(400).json({message: "User Not Found"})
+    }
+    
+    let match = await bcrypt.compare(password,existUser.password)
+    
+    if(!match) {
+      return res.status(400).json({message: "Incorrect Password"})
+    }
+    
+    let token;
+    try {
+      token = generateToken(existUser._id)
+    } catch (error) {
+      console.log(error);
+    }
+    
+    res.cookie("token", token, {
+      httpOnly:true,
+      sameSite:"strict",
+      maxAge:7*60*60*1000
+    })
+    
+    return res.status(200).json({user: {
+      name:existUser.name,
+      email:existUser.email,
+      password:existUser.password,
+      userName:existUser.userName
+    }})
+    
+  } catch (error) {
+    return res.status(500).json(error)
+  }
+}
+
+export const logOut = () => {
+  try {
+    res.clearCookie("token")
+  return res.status(200).json({message: "Logout Successfully"})
+  } catch (error) {
+    return res.status(400).json(error)
+  }
+  
+}
